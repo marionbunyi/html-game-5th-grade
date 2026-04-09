@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SPORTS BATTLE ZOOM</title>
+    <style>
+        :root { --teamA-color: #ff595e; --teamB-color: #1982c4; --accent-yellow: #ffca3a; --accent-blue: #3062ad; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Arial Black', sans-serif; background: #222; user-select: none; }
+        
+        #top-header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: #333; display: flex; align-items: center; justify-content: center; z-index: 50; border-bottom: 4px solid white; }
+        #top-header h1 { color: white; margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 2px; }
+
+        #game-wrapper { display: flex; height: 100vh; width: 100vw; padding-top: 60px; box-sizing: border-box; }
+
+        .player-side { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 10px; }
+        #teamA-side { background: linear-gradient(135deg, #8a2528, var(--teamA-color)); border-right: 2px solid white; }
+        #teamB-side { background: linear-gradient(225deg, #124e72, var(--teamB-color)); border-left: 2px solid white; }
+
+        .flash { background: white !important; }
+
+        .score-box { background: #f0f0f0; color: #333; padding: 8px 20px; border-radius: 10px; font-size: 1.6rem; border: 4px solid #333; position: absolute; top: 20px; z-index: 10; box-shadow: 4px 4px 0px rgba(0,0,0,0.2); }
+        .q-count { position: absolute; top: 85px; color: white; font-size: 1rem; text-shadow: 2px 2px #000; letter-spacing: 1px; }
+
+        /* --- THE ZOOM UPDATE --- */
+        .pic-frame { 
+            background: white; 
+            width: 300px; 
+            height: 300px; 
+            border-radius: 15px; 
+            border: 10px solid var(--accent-yellow); 
+            box-shadow: 0 10px 0 rgba(0,0,0,0.3); 
+            margin-bottom: 25px; 
+            overflow: hidden; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative; 
+        }
+        .pic-frame img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; /* This crops/zooms the photo to fill the square */
+            transform: scale(1.1); /* Extra 10% zoom for impact */
+        }
+        /* ----------------------- */
+
+        .btn-stack { width: 90%; display: flex; flex-direction: column; gap: 15px; }
+        .choice-btn { width: 100%; padding: 22px 5px; font-size: 1.6rem; font-weight: bold; border-radius: 10px; border: 4px solid #333; background: white; color: #333; box-shadow: 0 8px 0 #666; text-transform: uppercase; cursor: pointer; }
+        .choice-btn:active { transform: translateY(6px); box-shadow: 0 2px 0 #333; background: #e0e0e0; }
+
+        #banner { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px 60px; font-size: 3.5rem; border: 12px solid var(--accent-blue); border-radius: 10px; z-index: 100; display: block; box-shadow: 0 0 0 1000px rgba(0,0,0,0.8); font-weight: bold; text-align: center; line-height: 1.2; cursor: pointer; }
+        #count-num { font-size: 6rem; color: var(--teamA-color); display: block; }
+    </style>
+</head>
+<body>
+
+    <div id="top-header"><h1>What sport is this?</h1></div>
+    <div id="banner">SPORTS<br><small style="font-size:1.2rem; display:block; color:#666;">TAP TO START</small></div>
+
+    <div id="game-wrapper">
+        <div id="teamA-side" class="player-side">
+            <div class="score-box">TEAM A: <span id="s1">0</span></div>
+            <div class="q-count" id="c1">ROUND 1/16</div>
+            <div class="pic-frame" id="box1"></div>
+            <div class="btn-stack">
+                <button class="choice-btn" id="p1-b0" onclick="tap(1,0)"></button>
+                <button class="choice-btn" id="p1-b1" onclick="tap(1,1)"></button>
+            </div>
+        </div>
+        <div id="teamB-side" class="player-side">
+            <div class="score-box">TEAM B: <span id="s2">0</span></div>
+            <div class="q-count" id="c2">ROUND 1/16</div>
+            <div class="pic-frame" id="box2"></div>
+            <div class="btn-stack">
+                <button class="choice-btn" id="p2-b0" onclick="tap(2,0)"></button>
+                <button class="choice-btn" id="p2-b1" onclick="tap(2,1)"></button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let questions = [
+        { name: "badminton", file: "badminton.jpg" }, { name: "badminton", file: "badminton 2.jpg" },
+        { name: "baseball", file: "baseball.jpg" }, { name: "baseball", file: "baseball 2.jpg" },
+        { name: "basketball", file: "basketball.jpg" }, { name: "basketball", file: "basketball 2.jpg" },
+        { name: "soccer", file: "soccer.jpg" }, { name: "soccer", file: "soccer 2.jpg" },
+        { name: "swimming", file: "swimming.jpg" }, { name: "swimming", file: "swimming 2.jpg" },
+        { name: "table tennis", file: "table tennis.jpg" }, { name: "table tennis", file: "table tennis 2.jpg" },
+        { name: "tennis", file: "tennis.jpg" }, { name: "tennis", file: "tennis 2.jpg" },
+        { name: "volleyball", file: "volleyball.jpg" }, { name: "volleyball", file: "volleyball 2.jpg" }
+    ];
+
+    questions = questions.sort(() => Math.random() - 0.5);
+    const sportList = ["basketball", "badminton", "volleyball", "tennis", "table tennis", "swimming", "baseball", "soccer"];
+    let aScore = 0, bScore = 0, qIndex = 0, canTap = false, choices = [];
+    
+    const audio = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(notes, type, volume, speed = 0.1) {
+        const now = audio.currentTime;
+        notes.forEach((f, i) => {
+            const o = audio.createOscillator(); const g = audio.createGain();
+            o.type = type; o.frequency.value = f;
+            g.gain.setValueAtTime(volume, now + (i * speed));
+            g.gain.exponentialRampToValueAtTime(0.0001, now + (i * speed) + 0.5);
+            o.connect(g); g.connect(audio.destination);
+            o.start(now + (i * speed)); o.stop(now + (i * speed) + 0.5);
+        });
+    }
+
+    const tickSound = () => playSound([440], 'sine', 0.05, 0.1);
+    const goSound = () => playSound([523, 659, 783, 1046], 'square', 0.05, 0.1);
+    const pointSound = () => playSound([880, 1046, 1318], 'sine', 0.1, 0.08);
+    const failSound = () => playSound([110, 80], 'sawtooth', 0.1, 0.1);
+    const winFanfare = () => playSound([523, 523, 523, 523, 659, 783, 1046], 'square', 0.1, 0.15);
+
+    document.getElementById('banner').onclick = function() {
+        if(qIndex === 0 && !canTap) startCountdown();
+    };
+
+    function startCountdown() {
+        let count = 5; // Faster countdown for class energy!
+        const b = document.getElementById('banner');
+        const timer = setInterval(() => {
+            if(count > 0) { tickSound(); b.innerHTML = `GET READY!<br><span id="count-num">${count}</span>`; count--; }
+            else { clearInterval(timer); goSound(); showBanner("GO!", 800, load); }
+        }, 1000);
+    }
+
+    function showBanner(t, d, cb) {
+        const b = document.getElementById('banner'); b.innerHTML = t; b.style.display = 'block';
+        setTimeout(() => { b.style.display = 'none'; if(cb) cb(); }, d);
+    }
+
+    function load() {
+        if (qIndex >= 16) { endGame(); return; }
+        const q = questions[qIndex];
+        let wrong = sportList[Math.floor(Math.random() * sportList.length)];
+        while(wrong === q.name) wrong = sportList[Math.floor(Math.random() * sportList.length)];
+        choices = [q.name, wrong].sort(() => Math.random() - 0.5);
+
+        const img = `<img src="${q.file}">`;
+        document.getElementById('box1').innerHTML = img; document.getElementById('box2').innerHTML = img;
+        document.getElementById('c1').innerText = `ROUND ${qIndex + 1}/16`;
+        document.getElementById('c2').innerText = `ROUND ${qIndex + 1}/16`;
+
+        for(let i=0; i<2; i++) {
+            document.getElementById(`p1-b${i}`).innerText = choices[i];
+            document.getElementById(`p2-b${i}`).innerText = choices[i];
+        }
+        canTap = true;
+    }
+
+    function tap(team, i) {
+        if(!canTap) return;
+        if(choices[i] === questions[qIndex].name) {
+            canTap = false;
+            pointSound();
+            const sideId = team === 1 ? 'teamA-side' : 'teamB-side';
+            document.getElementById(sideId).classList.add('flash');
+            setTimeout(() => document.getElementById(sideId).classList.remove('flash'), 100);
+            if(team === 1) { aScore++; document.getElementById('s1').innerText = aScore; } 
+            else { bScore++; document.getElementById('s2').innerText = bScore; }
+            qIndex++;
+            showBanner("NEXT", 600, load);
+        } else {
+            failSound();
+        }
+    }
+
+    function endGame() {
+        let winnerText = aScore > bScore ? "WINNER: TEAM A" : (bScore > aScore ? "WINNER: TEAM B" : "DRAW!");
+        winFanfare();
+        const b = document.getElementById('banner');
+        b.innerHTML = `<span style="color:var(--teamA-color)">${winnerText}</span>`;
+        b.style.display = 'block';
+    }
+</script>
+</body>
+</html>
